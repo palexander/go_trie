@@ -12,10 +12,13 @@ import (
 )
 
 type Trie struct {
-	root *TrieNode
+	Root  *TrieNode
+	Chars RuneHolder
 }
 
-type TrieHolder map[rune]*TrieNode
+type RuneHolder map[rune]*rune
+
+type TrieHolder map[*rune]*TrieNode
 
 type TrieNode struct {
 	WordId   []int
@@ -26,14 +29,15 @@ type TrieNode struct {
 
 func NewTrie() *Trie {
 	node := TrieNode{Children: make(TrieHolder)}
-	t := (Trie{&node})
+	chars := make(RuneHolder)
+	t := (Trie{&node, chars})
 	return &t
 }
 
 func (t Trie) AddWord(word string, id int) {
 	word = strings.ToLower(word)
 	splitWord := strings.Split(word, "")
-	t.BuildTree(splitWord, id, t.root)
+	t.BuildTree(splitWord, id, t.Root)
 }
 
 func (t Trie) BuildTree(chars []string, id int, parent *TrieNode) {
@@ -47,16 +51,23 @@ func (t Trie) BuildTree(chars []string, id int, parent *TrieNode) {
 	currentRune, _, _, _ := strconv.UnquoteChar(chars[0], 0)
 	// fmt.Println(currentRune)
 
+	// Get pointer to rune from RuneHolder
+	currentRunePtr, ptrExists := t.Chars[currentRune]
+	if !ptrExists {
+		t.Chars[currentRune] = &currentRune
+		currentRunePtr = &currentRune
+	}
+
 	// Delete first entry
 	chars = append(chars[:0], chars[0+1:]...)
 
-	trieNode, exists := parent.Children[currentRune]
+	trieNode, exists := parent.Children[currentRunePtr]
 	if !exists {
 		children := make(TrieHolder)
 		trieNode = &TrieNode{Parent: parent, Children: children}
 	}
 
-	parent.Children[currentRune] = trieNode
+	parent.Children[currentRunePtr] = trieNode
 	t.BuildTree(chars, id, trieNode)
 }
 
@@ -78,10 +89,18 @@ func (t Trie) IsPrefix(prefix string) (bool, *TrieNode) {
 	splitPrefix := strings.Split(prefix, "")
 	var child *TrieNode
 	var exists bool
-	child = t.root
+	child = t.Root
 	for _, char := range splitPrefix {
 		currentRune, _, _, _ := strconv.UnquoteChar(char, 0)
-		child, exists = child.Children[currentRune]
+
+		// Get pointer to rune from RuneHolder
+		currentRunePtr, ptrExists := t.Chars[currentRune]
+		if !ptrExists {
+			t.Chars[currentRune] = &currentRune
+			currentRunePtr = &currentRune
+		}
+
+		child, exists = child.Children[currentRunePtr]
 		if !exists {
 			break
 		}
@@ -89,20 +108,9 @@ func (t Trie) IsPrefix(prefix string) (bool, *TrieNode) {
 	return exists, child
 }
 
-var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
 var memprofile = flag.String("memprofile", "", "write memory profile to this file")
 
 func main() {
-	flag.Parse()
-	if *cpuprofile != "" {
-		f, err := os.Create(*cpuprofile)
-		if err != nil {
-			fmt.Println(err)
-		}
-		pprof.StartCPUProfile(f)
-		defer pprof.StopCPUProfile()
-	}
-
 	trie := NewTrie()
 	trie.AddWord("the best ever", 0)
 	trie.AddWord("terror", 1)
@@ -121,7 +129,6 @@ func main() {
 		id, _ := strconv.Atoi(id_word[0])
 		trie.AddWord(id_word[1], id)
 		count += 1
-		fmt.Println(count)
 		if count == 500000 {
 			break
 		}
@@ -149,7 +156,6 @@ func main() {
 	fmt.Println(trie.IsWord("annie oakley"))
 	fmt.Println(trie.IsWord("hello π"))
 	fmt.Println(trie.IsWord("Љ"))
-	fmt.Println(trie.IsWord("Hygiène_de_vie"))
 
 	fmt.Println("THE LIES")
 	fmt.Println(trie.IsWord("the"))

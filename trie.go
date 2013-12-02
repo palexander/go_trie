@@ -9,23 +9,44 @@ import (
 	"runtime/pprof"
 	"strconv"
 	"strings"
+	"time"
 )
+
+type TrieNode struct {
+	// WordId   []int
+	Children []*TrieNode
+	Delim    bool
+	Rune     rune
+}
+
+func (tn *TrieNode) AddChild(r rune) *TrieNode {
+	node, exists := tn.FindChild(r)
+	if !exists {
+		node = &TrieNode{Rune: r}
+		tn.Children = append(tn.Children, node)
+	}
+	return node
+}
+
+func (tn *TrieNode) FindChild(r rune) (*TrieNode, bool) {
+	var foundNode *TrieNode
+	found := false
+	for _, node := range tn.Children {
+		if node.Rune == r {
+			found = true
+			foundNode = node
+			break
+		}
+	}
+	return foundNode, found
+}
 
 type Trie struct {
 	root *TrieNode
 }
 
-type TrieHolder map[rune]*TrieNode
-
-type TrieNode struct {
-	WordId   []int
-	Children TrieHolder
-	Parent   *TrieNode
-	Delim    bool
-}
-
 func NewTrie() *Trie {
-	node := TrieNode{Children: make(TrieHolder)}
+	node := TrieNode{}
 	t := (Trie{&node})
 	return &t
 }
@@ -45,18 +66,15 @@ func (t Trie) BuildTree(chars []string, id int, parent *TrieNode) {
 
 	// Get char as rune
 	currentRune, _, _, _ := strconv.UnquoteChar(chars[0], 0)
-	// fmt.Println(currentRune)
 
 	// Delete first entry
 	chars = append(chars[:0], chars[0+1:]...)
 
-	trieNode, exists := parent.Children[currentRune]
+	trieNode, exists := parent.FindChild(currentRune)
 	if !exists {
-		children := make(TrieHolder)
-		trieNode = &TrieNode{Parent: parent, Children: children}
+		trieNode = parent.AddChild(currentRune)
 	}
 
-	parent.Children[currentRune] = trieNode
 	t.BuildTree(chars, id, trieNode)
 }
 
@@ -81,7 +99,7 @@ func (t Trie) IsPrefix(prefix string) (bool, *TrieNode) {
 	child = t.root
 	for _, char := range splitPrefix {
 		currentRune, _, _, _ := strconv.UnquoteChar(char, 0)
-		child, exists = child.Children[currentRune]
+		child, exists = child.FindChild(currentRune)
 		if !exists {
 			break
 		}
@@ -104,6 +122,8 @@ func main() {
 	}
 
 	trie := NewTrie()
+	trie.AddWord("ab", 0)
+	trie.AddWord("ab", 0)
 	trie.AddWord("the best ever", 0)
 	trie.AddWord("terror", 1)
 	trie.AddWord("terror", 7)
@@ -122,7 +142,7 @@ func main() {
 		trie.AddWord(id_word[1], id)
 		count += 1
 		fmt.Println(count)
-		if count == 500000 {
+		if count == 5000000 {
 			break
 		}
 	}
@@ -130,6 +150,9 @@ func main() {
 	if err := scanner.Err(); err != nil {
 		fmt.Println(err)
 	}
+
+	// time.Sleep(time.Minute * 5)
+	time.Sleep(1)
 
 	if *memprofile != "" {
 		f, err := os.Create(*memprofile)
@@ -142,6 +165,7 @@ func main() {
 	}
 
 	fmt.Println("THE TRUTH")
+	fmt.Println(trie.IsPrefix("ab"))
 	fmt.Println(trie.IsPrefix("the"))
 	fmt.Println(trie.IsWord("the best ever"))
 	fmt.Println(trie.IsWord("terror"))
@@ -149,7 +173,6 @@ func main() {
 	fmt.Println(trie.IsWord("annie oakley"))
 	fmt.Println(trie.IsWord("hello π"))
 	fmt.Println(trie.IsWord("Љ"))
-	fmt.Println(trie.IsWord("Hygiène_de_vie"))
 
 	fmt.Println("THE LIES")
 	fmt.Println(trie.IsWord("the"))

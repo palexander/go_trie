@@ -5,7 +5,9 @@ import (
 	// "math"
 	"bufio"
 	"flag"
+	"log"
 	"os"
+	"runtime"
 	"runtime/pprof"
 	"strconv"
 	"strings"
@@ -107,6 +109,23 @@ func (t Trie) IsPrefix(prefix string) (bool, *TrieNode) {
 	return exists, child
 }
 
+func BytesToGB(bb float64) string {
+	return fmt.Sprintf("%.3f GB", bb/(1024.0*1024.0*1024.0))
+}
+
+func Stop() {
+	log.Println("stopped - enter anything to exit")
+	in := bufio.NewReader(os.Stdin)
+	in.ReadString('\n')
+}
+
+func GoRuntimeStats() {
+	m := &runtime.MemStats{}
+	runtime.ReadMemStats(m)
+	log.Println("Memory Acquired: ", BytesToGB(float64(m.Sys)))
+	log.Println("Memory Used    : ", BytesToGB(float64(m.Alloc)))
+}
+
 var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
 var memprofile = flag.String("memprofile", "", "write memory profile to this file")
 
@@ -141,8 +160,8 @@ func main() {
 		id, _ := strconv.Atoi(id_word[0])
 		trie.AddWord(id_word[1], id)
 		count += 1
-		fmt.Println(count)
-		if count == 5000000 {
+		// fmt.Println(count)
+		if count == 50000000 {
 			break
 		}
 	}
@@ -178,6 +197,11 @@ func main() {
 	fmt.Println(trie.IsWord("the"))
 	fmt.Println(trie.IsPrefix("blah"))
 	fmt.Println(trie.IsWord("Ђ"))
+
+	GoRuntimeStats()
+	runtime.GC()
+	GoRuntimeStats()
+	Stop()
 
 	// This results in almost 5GB memory
 	// var holder [][math.MaxInt8]TrieNode

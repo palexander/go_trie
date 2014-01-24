@@ -13,13 +13,16 @@ using runes (equivalent to an int16).
 Using a radix trie, where multiple characters are stored per node, provides for improved
 memory usage. For example, the structure might look like:
 
+```
 - a
 -- pp
 --- le
 --- lication
+```
 
 instead of:
 
+```
 - a
 -- p
 --- p
@@ -32,3 +35,8 @@ instead of:
 -------- i
 --------- o
 ---------- n
+```
+
+## TODO
+
+Radix trie implementation (WIP in radix_trie branch)

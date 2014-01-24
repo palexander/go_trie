@@ -53,6 +53,23 @@ func NewTrie() *Trie {
 	return &t
 }
 
+func NewTrieFile(path string) *Trie {
+	trie := NewTrie()
+	file, _ := os.Open(path)
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		id_word := strings.Split(scanner.Text(), "\t")
+		id, _ := strconv.Atoi(id_word[0])
+		trie.AddWord(id_word[1], id)
+	}
+
+	if err := scanner.Err(); err != nil {
+		fmt.Println(err)
+	}
+
+	return trie
+}
+
 func (t Trie) AddWord(word string, id int) {
 	word = strings.ToLower(word)
 	splitWord := strings.Split(word, "")

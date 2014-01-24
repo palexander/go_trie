@@ -1,21 +1,15 @@
-package main
+package go_trie
 
 import (
-	"fmt"
-	// "math"
 	"bufio"
-	"log"
+	"fmt"
 	"os"
-	"runtime"
-	// "runtime/pprof"
-	"github.com/davecheney/profile"
 	"strconv"
 	"strings"
-	"time"
 )
 
 type TrieNode struct {
-	// WordId   []int
+	WordId   []int
 	Children []*TrieNode
 	Delim    bool
 	Rune     []rune
@@ -98,6 +92,23 @@ func NewTrie() *Trie {
 	return &t
 }
 
+func NewTrieFile(path string) *Trie {
+	trie := NewTrie()
+	file, _ := os.Open(path)
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		id_word := strings.Split(scanner.Text(), "\t")
+		id, _ := strconv.Atoi(id_word[0])
+		trie.AddWord(id_word[1], id)
+	}
+
+	if err := scanner.Err(); err != nil {
+		fmt.Println(err)
+	}
+
+	return trie
+}
+
 func (t Trie) AddWord(word string, id int) {
 	word = strings.ToLower(word)
 	// splitWord := strings.Split(word, "")
@@ -120,6 +131,7 @@ func (t Trie) AddRadixWord(word []rune, id int, parent *TrieNode) {
 	// We hit the endo the line, make the parent a word delim
 	if len(word) == 0 {
 		parent.Delim = true
+		parent.WordId = append(parent.WordId, id)
 		return
 	}
 
@@ -194,133 +206,13 @@ func (t Trie) IsPrefix(prefix string) (bool, *TrieNode) {
 	// var exists bool
 	// child = t.root
 	// for _, char := range splitPrefix {
-	// 	currentRune, _, _, _ := strconv.UnquoteChar(char, 0)
-	// 	child, exists = child.FindChild(currentRune)
-	// 	if !exists {
-	// 		break
-	// 	}
+	//  currentRune, _, _, _ := strconv.UnquoteChar(char, 0)
+	//  child, exists = child.FindChild(currentRune)
+	//  if !exists {
+	//    break
+	//  }
 	// }
 	// return exists, child
 
 	return false, &TrieNode{}
-}
-
-func main() {
-	defer profile.Start(profile.CPUProfile).Stop()
-
-	trie := NewTrie()
-	count := 0
-	for count < 1 {
-		trie.AddWord("apple", 0)
-		trie.AddWord("at", 0)
-		trie.AddWord("apple", 0)
-		trie.AddWord("art", 0)
-		trie.AddWord("application", 0)
-		trie.AddWord("abacus", 0)
-		trie.AddWord("algebra", 0)
-		trie.AddWord("baby", 0)
-		trie.AddWord("broken", 0)
-		trie.AddWord("belly", 0)
-		trie.AddWord("the best ever", 0)
-		trie.AddWord("terror", 1)
-		trie.AddWord("terror", 7)
-		trie.AddWord("terrorist", 2)
-		trie.AddWord("annie", 3)
-		trie.AddWord("annie oakley", 4)
-		trie.AddWord("hello π", 5)
-		trie.AddWord("Љ", 6)
-		count += 1
-		if count%1000 == 0 {
-			fmt.Println(count)
-		}
-	}
-
-	file, _ := os.Open("/Users/palexand/tmp/dictionary.txt")
-	scanner := bufio.NewScanner(file)
-	count = 0
-	for scanner.Scan() {
-		id_word := strings.Split(scanner.Text(), "\t")
-		id, _ := strconv.Atoi(id_word[0])
-		trie.AddWord(id_word[1], id)
-		count += 1
-		if count%10000 == 0 {
-			fmt.Println(count)
-		}
-		if count == 10000000 {
-			break
-		}
-	}
-
-	if err := scanner.Err(); err != nil {
-		fmt.Println(err)
-	}
-
-	// time.Sleep(time.Minute * 5)
-	time.Sleep(1)
-
-	fmt.Println(len(trie.root.Children))
-	for _, node := range trie.root.Children {
-		fmt.Println("\nfirst")
-		fmt.Println(node)
-		fmt.Println(string(node.Rune))
-		for _, node1 := range node.Children {
-			fmt.Println("second")
-			fmt.Println(node1)
-			fmt.Println(string(node1.Rune))
-			for _, node2 := range node1.Children {
-				fmt.Println("third")
-				fmt.Println(node2)
-				fmt.Println(string(node2.Rune))
-			}
-		}
-	}
-
-	// fmt.Println("THE TRUTH")
-	// fmt.Println(trie.IsPrefix("ab"))
-	// fmt.Println(trie.IsPrefix("the"))
-	// fmt.Println(trie.IsWord("the best ever"))
-	// fmt.Println(trie.IsWord("terror"))
-	// fmt.Println(trie.IsWord("annie"))
-	// fmt.Println(trie.IsWord("annie oakley"))
-	// fmt.Println(trie.IsWord("hello π"))
-	// fmt.Println(trie.IsWord("Љ"))
-
-	// fmt.Println("THE LIES")
-	// fmt.Println(trie.IsWord("the"))
-	// fmt.Println(trie.IsPrefix("blah"))
-	// fmt.Println(trie.IsWord("Ђ"))
-
-	GoRuntimeStats()
-	runtime.GC()
-	GoRuntimeStats()
-	Stop()
-
-	// This results in almost 5GB memory
-	// var holder [][math.MaxInt8]TrieNode
-	// holder = make([][math.MaxInt8]TrieNode, 1000000)
-	// for i := 0; i < 1000000; i++ {
-	// 	var newArray [math.MaxInt8]TrieNode
-	// 	holder[i] = newArray
-	// }
-	// fmt.Println("TrieNode Arrays created")
-	// for true {
-	// 	fmt.Println("waiting")
-	// }
-}
-
-func BytesToGB(bb float64) string {
-	return fmt.Sprintf("%.3f GB", bb/(1024.0*1024.0*1024.0))
-}
-
-func Stop() {
-	log.Println("stopped - enter anything to exit")
-	in := bufio.NewReader(os.Stdin)
-	in.ReadString('\n')
-}
-
-func GoRuntimeStats() {
-	m := &runtime.MemStats{}
-	runtime.ReadMemStats(m)
-	log.Println("Memory Acquired: ", BytesToGB(float64(m.Sys)))
-	log.Println("Memory Used    : ", BytesToGB(float64(m.Alloc)))
 }
